@@ -1,0 +1,221 @@
+import numpy as nd
+import pandas as pd
+import os
+
+import pip
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import f1_score
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.metrics import confusion_matrix
+
+news_data = pd.read_csv('C:/Users/Bino Varghese/Desktop/news.csv')
+print(news_data)
+headline_data = pd.DataFrame(news_data)
+headline_data.head()
+headline_data= headline_data.drop('article_link', axis=1)
+headline_data.head()
+# splitting into test and train
+train, test = train_test_split(headline_data, test_size=0.25)
+# splitting into test and train
+train, val = train_test_split(train, test_size=0.25)
+
+train.head
+test.head
+val.head
+
+sns.countplot(train['is_sarcastic'])
+sns.countplot(test['is_sarcastic'])
+sns.countplot(val['is_sarcastic'])
+train.head
+#taking the length of each words in train
+train['len'] = train['headline'].apply(lambda x: len(x.split(" ")))
+train.head
+#taking the length of each words in train
+val['len'] = val['headline'].apply(lambda x: len(x.split(" ")))
+val.head
+#calculating the frequency of each lenghts in train
+train_length = train ['len'].value_counts().reset_index()
+train_length.rename(columns={'index': 'length_of_word', 'len':'Frequency_of_words'}, inplace = True)
+train_length.head()
+#calculating the frequency of each lenghts in val
+val_length = val ['len'].value_counts().reset_index()
+val_length.rename(columns={'index': 'length_of_word', 'len':'Frequency_of_words'}, inplace = True)
+val_length.head()
+#making bar plot to find out the outliers for train
+import matplotlib.pyplot as plt
+plt.bar(train_length['length_of_word'], train_length['Frequency_of_words'])
+#making bar plot to find out the outliers for val
+import matplotlib.pyplot as plt
+plt.bar(val_length['length_of_word'], val_length['Frequency_of_words'])
+# removing those sarcastic headlines  in train setwhose length is greather than 17
+print('shape of train before preprocessing ',train.shape)
+# removing those sarcastic headlines  in val setwhose length is greather than 17
+print('shape of val before preprocessing ',val.shape)
+print('shape of train after preprocessing ',train.shape)
+print('shape of val after preprocessing ',val.shape)
+#Exploratory data analysis
+!pip install wordcloud
+from wordcloud import WordCloud, STOPWORDS
+def display_wordcloud(data, title):
+words_list = data.unique().tolist()
+words = ' '.join(words_list)
+wordcloud = WordCloud(width = 800, height = 400,
+stopwords = set(STOPWORDS)).generate(words)
+plt.figure(figsize=(18, 12), facecolor=None)
+plt.imshow(wordcloud)
+plt.title(f'Words in {title}')
+plt.axis("off")
+plt.show()
+# Wordcloud for Sarcastic headlines
+display_wordcloud(train[train['is_sarcastic']==0]['headline'], 'Sarcastic headlines')
+# Wordcloud for non Sarcastic headliness
+display_wordcloud(train[train['is_sarcastic']==1]['headline'], 'non Sarcastic headlines')
+def display_boxplot(_x, _y, _data, _title):
+    sns.boxplot(x=_x, y=_y, data=_data)
+    plt.grid(True)
+    plt.title(_title)
+display_boxplot('is_sarcastic', 'len', train, 'length')
+from collections import Counter
+def plot_word_freq(data, title, bar_color):
+     top_words = Counter(data).most_common(20) #top 20 words
+     df_top = pd.DataFrame(top_words, columns=['word', 'count']).sort_values('count') # storing in dataframe
+     plt.barh(df_top['word'].values, df_top['count'].values, orientation='horizontal', color=bar_color) # plot
+     plt.title(f'Top words in {title}')
+def get_unigrams(data):
+  unigrams = []
+  for sent in data
+    unigrams.extend([w for w in sent.lower().split() if w not in STOPWORDS])
+  return unigrams
+import nltk
+ # Unigrams
+unigrams_sarcastic  = get_unigrams(train[train['is_sarcastic']==0]['headline'])
+unigrams_non_sarcastic = get_unigrams(train[train['is_sarcastic']==1]['headline'])
+# Unigrams Sincere words
+plt.subplot(1, 2, 1)
+plot_word_freq(unigrams_sarcastic, 'Sarcastic headlines: Unigrams', 'green')
+# Unigrams Insincere words
+plt.subplot(1, 2, 2)
+plot_word_freq(unigrams_non_sarcastic, 'In sarcastic headlines: Unigrams', 'blue')
+plt.subplots_adjust(right=3.0)
+plt.subplots_adjust(top=2.0)
+plt.show()
+#vectorizing the variables
+tf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), max_features= 5000)
+#splitting the dependent and independent variables
+I = tf.fit_transform(train['headline'])
+D = train['is_sarcastic']
+#Splitting to val and train
+I_train, I_val, D_train, D_val = train_test_split(I,D, test_size = 0.25)
+#Implementation of Navie Bias
+naviebias = BernoulliNB()
+naviebias.fit(I_train, D_train)
+y_pred = naviebias.predict(I_val)
+confusion_matrix(y_pred,D_val)
+f1_score(y_pred, D_val)
+!pip install xgboost
+#implementation of XGboost
+from xgboost import XGBClassifier
+for i in range(9, 12)
+ model = XGBClassifier(max_depth = i, n_jobs=6)
+ model.fit(I_train, D_train)
+ y_pred = model.predict(I_val)
+ print(f1_score(y_pred, D_val))
+import string
+from nltk.stem import WordNetLemmatizer
+wordnet_lemmatizer = WordNetLemmatizer()
+# print (\"punctuations that gonna be removed, : \",string.punctuation)
+# print(stop_words)
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+stop_words = stopwords.words('english')
+import nltk
+nltk.download('wordnet')
+def process(x):
+ token_list = x.split()
+ #     print(token_list)
+ new_list = [w.lower() for w in token_list if w not in string.punctuation]
+ new_list = [w for w in new_list if w not in stop_words]
+ new_list = [wordnet_lemmatizer.lemmatize(w) for w in new_list]
+ return " ".join(new_list)
+ train['headline'] = train['headline'].apply(process)
+ pd.options.mode.chained_assignment = None
+#Implementation of XGboost after data cleaning
+tf = TfidfVectorizer(analyzer='word', ngram_range=(1,3), max_features= 6000, token_pattern="[a-zA-Z]{2,}", norm='l1')
+I = tf.fit_transform(train['headline'])
+D = train['is_sarcastic']
+train.drop('len', axis = 1)
+I_train, I_val, D_train, D_val = train_test_split(I,D, test_size = 0.25)
+for i in range(15, 20):
+ model = XGBClassifier(max_depth = i, n_jobs = 8)
+ model.fit(I_train, D_train)
+ y_pred = model.predict(I_val)
+ print(f1_score(y_pred, D_val))
+from sklearn.metrics import accuracy_score
+accuracy_score(y_pred, D_val, normalize=True)
+#Implementation of naive bayes after cleaning
+naviebias = BernoulliNB(alpha=2)
+naviebias.fit(I_train, D_train)
+y_pred = naviebias.predict(I_val)
+f1_score(y_pred, D_val)
+from sklearn.metrics import accuracy_score
+accuracy_score(y_pred, D_val, normalize=True)
+#Implementation of Logistic regression
+from sklearn.linear_model import LogisticRegression
+Logi = LogisticRegression()
+Logi.fit(I_train,D_train)
+y_pred = model.predict(I_val)
+f1_score(y_pred, D_val)
+from sklearn.metrics import accuracy_score
+accuracy_score(y_pred, D_val, normalize=True)
+#Implementation of SVC
+from sklearn.svm import LinearSVC
+model = LinearSVC()
+model.fit(I_train, D_train)
+y_pred = model.predict(I_val)
+f1_score(y_pred, D_val)
+from sklearn.metrics import accuracy_score
+accuracy_score(y_pred, D_val, normalize=True)
+# Implementation of Random forest
+from sklearn.ensemble import RandomForestClassifier
+model = RandomForestClassifier()
+model.fit(I_train, D_train)
+y_pred = model.predict(I_val)
+f1_score(y_pred, D_val)
+from sklearn.metrics import accuracy_score
+accuracy_score(y_pred, D_val, normalize=True)
+confusion_matrix(y_pred, D_val)
+import matplotlib.pyplot as plt; plt.rcdefaults()
+import matplotlib.pyplot as plt; plt.rcdefaults()
+import numpy as np
+import matplotlib.pyplot as plt
+objects = ('Randomforest', 'SVC', 'Log Reg', 'NB', 'XG')
+y_pred = np.arange(len(objects))
+performance =[0.7327852004110997, 0.7733812949640287, 0.7022096608427544, 0.7767214799588901, 0.7022096608427544]
+plt.bar(y_pred, performance, align='center', alpha=0.5)
+plt.xticks(y_pred, objects)
+plt.ylabel('Accuracy')
+plt.title('Model')
+plt.show()
+tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 3), max_features= 5000, token_pattern="[a-zA-Z]{2, }", norm='l1')
+I_test_eval = tf.fit_transform(test['headline'])
+D_test_eval = test['is_sarcastic']
+naviebias = BernoulliNB(alpha=10.0, binarize=0.0,fit_prior=False, class_prior=None)
+naviebias.fit(I_test_eval, D_test_eval)
+y_pred_NB_eval = naviebias.predict(I_test_eval)
+f1_score(y_pred_NB_eval, D_test_eval)
+accuracy_score(y_pred_NB_eval, D_test_eval, normalize=True)
+confusion_matrix(y_pred_NB_eval, D_test_eval)
+# Reciever opereating charactaristics (ROC)
+probability = naviebias.predict_proba(I_test_eval)
+fpr, tpr, threshold = roc_curve(D_test_eval, probability)
+auc_val = auc(fpr, tpr)
+plt.plot(fpr, tpr)
+from sklearn.metrics import roc_auc_score
+y_pred_NB_eval
+D_test_eval
+roc_auc_score(y_pred_NB_eval, D_test_eval)
